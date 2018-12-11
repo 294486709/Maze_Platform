@@ -64,8 +64,11 @@ vector<vector<Node*>> build_map() {
 }
 
 
-void find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, vector<int> current_element) {
+vector<int> find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, vector<int> current_element) {
     vector<int> result;
+    vector<vector<int>> possible_neighbor;
+    vector<int> next;
+    int num_open, rand_index;
     if (current_element[0] != 0) {
         if ((*map)[current_element[0] - 1][current_element[1]] ->visited == false){
             result.push_back(current_element[0] - 1);
@@ -73,7 +76,7 @@ void find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, 
             result.push_back(current_element[0]);
             result.push_back(current_element[1]);
             result.push_back(8);
-            openlist->push_back(result);
+            possible_neighbor.push_back(result);
             result.clear();
         }
     }
@@ -84,7 +87,7 @@ void find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, 
             result.push_back(current_element[0]);
             result.push_back(current_element[1]);
             result.push_back(2);
-            openlist->push_back(result);
+            possible_neighbor.push_back(result);
             result.clear();
         }
     }
@@ -95,7 +98,7 @@ void find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, 
             result.push_back(current_element[0]);
             result.push_back(current_element[1]);
             result.push_back(4);
-            openlist->push_back(result);
+            possible_neighbor.push_back(result);
             result.clear();
         }
     }
@@ -106,10 +109,37 @@ void find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, 
             result.push_back(current_element[0]);
             result.push_back(current_element[1]);
             result.push_back(6);
-            openlist->push_back(result);
+            possible_neighbor.push_back(result);
             result.clear();
         }
     }
+    num_open = possible_neighbor.size();
+    if (num_open == 0) {
+        (*openlist).erase(openlist->begin(),openlist->begin()+1);
+        return (*openlist)[0];
+    }
+
+//    cout<<time(0)<<endl;
+    rand_index = ((double)rand() / double(RAND_MAX))*(num_open);
+//    cout<< rand_index<<" "<< num_open<<endl;
+    next.push_back(possible_neighbor[rand_index][0]);
+    next.push_back(possible_neighbor[rand_index][1]);
+    next.push_back(current_element[0]);
+    next.push_back(current_element[1]);
+    next.push_back(possible_neighbor[rand_index][4]);
+    possible_neighbor.erase(possible_neighbor.begin()+rand_index, possible_neighbor.begin()+rand_index+1);
+    if (!possible_neighbor.empty()) {
+        for (int i=0;i<possible_neighbor.size();i++) {
+            result.clear();
+            result.push_back(possible_neighbor[i][0]);
+            result.push_back(possible_neighbor[i][1]);
+            result.push_back(current_element[0]);
+            result.push_back(current_element[1]);
+            result.push_back(possible_neighbor[i][4]);
+            openlist->insert(openlist->begin(), result);
+        }
+    }
+    return next;
 }
 
 void clear_wall(vector<vector<Node*>>* map, vector<int> current_open) {
@@ -132,30 +162,42 @@ void clear_wall(vector<vector<Node*>>* map, vector<int> current_open) {
         }
     }
 }
+//
+//void build_maze_find_neighbor(vector<vector<Node*>>* map, Node* current_node, vector<Node*>* openlist) {
+//    vector<Node*> possible_neighbor;
+//    int current_row = current_node->row;
+//    int current_col = current_node->col;
+//    if (current_row != 0 && (*map)[current_col][current_row-1]->visited == false) {
+//        possible_neighbor.push_back((*map)[current_col][current_row-1]);
+//    }
+//
+//}
+
 
 void build_maze(vector<vector<Node*>>* map) {
+//    vector<Node*> openlist;
+//    Node* current_node;
+//    current_node->visited = true;
+//    current_node = (*map)[0][0];
+
     vector<vector<int>> openlist;
     vector<int> current_element;
     vector<int> prev_element;
     vector<int> current_open;
-    srand(time(NULL));
+    vector<int> next;
     (*map)[x_start][y_start]->visited = true;
-    int num_open;
-    int rand_index;
     current_element.push_back(x_start);
     current_element.push_back(y_start);
-    find_neightbors(map, &openlist, current_element);
-    while (!openlist.empty()) {
-        num_open = openlist.size();
-
-        rand_index = rand()%(num_open);
-        cout<<num_open<<" "<<rand_index<<endl;
-        current_open = openlist[rand_index];
-        current_element[0] = current_open[0];
-        current_element[1] = current_open[1];
-        openlist.erase(openlist.begin()+ rand_index,openlist.begin()+rand_index+1);
-        find_neightbors(map, &openlist, current_element);
-        clear_wall(map, current_open);
+    next = find_neightbors(map, &openlist, current_element);
+    clear_wall(map, next);
+    while (1) {
+        current_element[0] = next[0];
+        current_element[1] = next[1];
+        next = find_neightbors(map, &openlist, current_element);
+        if (openlist.empty()) {
+            break;
+        }
+        clear_wall(map, next);
         (*map)[current_element[0]][current_element[1]]->visited = true;
     }
 }
@@ -242,9 +284,11 @@ bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
 }
 
 
+
 int main() {
     // program start
     // declare variables
+    srand(time(0));
     auto start_t = std::chrono::system_clock::now();
     vector<vector<Node*>> map;
     vector<vector<Node*>> map_for_BFS;
@@ -259,10 +303,10 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 5;
+    matrix_size = 30;
     // end coord
     x_end = matrix_size - 1;
-    y_end = 0;
+    y_end = matrix_size - 1;
     end.push_back(x_end);
     end.push_back(y_end);
     // build map
