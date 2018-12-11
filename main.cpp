@@ -3,6 +3,9 @@
 #include <vector>
 #include <stdlib.h>
 #include <chrono>
+#include <algorithm>
+#include <limits>
+#include <set>
 
 // defalut parameters
 int x_start = 0;
@@ -17,6 +20,7 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::rand;
+using std::find;
 
 
 typedef struct Node Data_Node;
@@ -33,7 +37,19 @@ struct Node {
     struct Node* prev_for_BFS;
     int dist_for_BFS;
     bool BFS_inopen = false;
+    bool DFS_visited = false;
+    int DFS_depth = std::numeric_limits<int>::max();
+    int BF_dist = std::numeric_limits<int>::max();
 };
+
+void creat_row(vector<Node*>* a, int i);
+void create_node(Node* a, int i, int j);
+vector<vector<Node*>> build_map();
+vector<int> find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* openlist, vector<int> current_element);
+void clear_wall(vector<vector<Node*>>* map, vector<int> current_open);
+void build_maze(vector<vector<Node*>>* map);
+void BFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, vector<int> current_element);
+bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end);
 
 
 void create_node(Node* a, int i, int j){
@@ -162,24 +178,9 @@ void clear_wall(vector<vector<Node*>>* map, vector<int> current_open) {
         }
     }
 }
-//
-//void build_maze_find_neighbor(vector<vector<Node*>>* map, Node* current_node, vector<Node*>* openlist) {
-//    vector<Node*> possible_neighbor;
-//    int current_row = current_node->row;
-//    int current_col = current_node->col;
-//    if (current_row != 0 && (*map)[current_col][current_row-1]->visited == false) {
-//        possible_neighbor.push_back((*map)[current_col][current_row-1]);
-//    }
-//
-//}
 
 
 void build_maze(vector<vector<Node*>>* map) {
-//    vector<Node*> openlist;
-//    Node* current_node;
-//    current_node->visited = true;
-//    current_node = (*map)[0][0];
-
     vector<vector<int>> openlist;
     vector<int> current_element;
     vector<int> prev_element;
@@ -283,27 +284,171 @@ bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
     }
 }
 
+Node* DFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, Node* current_node) {
+    vector<Node*> neighbor;
+    if (current_node->left != nullptr && !current_node->left->DFS_visited) {
+        if (find(openlist->begin(),openlist->end(), current_node->left) == openlist->end()) {
+            neighbor.push_back(current_node->left);
+            current_node->left->DFS_visited = true;
+        }
+    }
+    if (current_node->right != nullptr && !current_node->right->DFS_visited) {
+        if (find(openlist->begin(),openlist->end(), current_node->right) == openlist->end()){
+            neighbor.push_back(current_node->right);
+            current_node->right->DFS_visited = true;
+        }
+    }
+    if (current_node->up != nullptr && !current_node->up->DFS_visited) {
+        if (find(openlist->begin(),openlist->end(), current_node->up) == openlist->end()) {
+            neighbor.push_back(current_node->up);
+            current_node->up->DFS_visited = true;
+        }
+    }
+    if (current_node->down != nullptr && !current_node->down->DFS_visited) {
+        if (find(openlist->begin(),openlist->end(), current_node->down) == openlist->end()) {
+            neighbor.push_back(current_node->down);
+            current_node->down->DFS_visited = true;
+        }
+    }
+    if (neighbor.empty()) {
+        if (openlist->empty()) {
+            current_node = nullptr;
+            return current_node;
+        }
+        else{
+            current_node->DFS_visited = true;
+            current_node = (*openlist)[0];
+            openlist->erase(openlist->begin(),openlist->begin()+1);
+
+            return current_node;
+        }
+    }
+    else {
+        for (int i=0;i<neighbor.size();i++) {
+            if (neighbor[i]->DFS_depth > current_node->DFS_depth+1) {
+            neighbor[i]->prev_for_BFS = current_node;
+            neighbor[i]->DFS_depth = current_node->DFS_depth + 1;
+            openlist->insert(openlist->begin(), neighbor[i]);
+            }
+        }
+        current_node = (*openlist)[0];
+
+    }
+    return current_node;
+}
+
+bool DFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+    Node* current_node;
+    vector<Node*> openlist;
+    bool flag = false;
+    current_node = (*map)[start[0]][start[1]];
+    current_node->DFS_depth = 0;
+    openlist.push_back(current_node);
+    current_node = DFS_find_neighbor(map, &openlist, current_node);
+    while (1) {
+        current_node = DFS_find_neighbor(map, &openlist, current_node);
+        if (current_node == nullptr) {
+            return flag;
+        }
+        else {
+            if (current_node->col == end[0] && current_node->row == end[1]) {
+                flag = true;
+            }
+        }
+    }
+}
+
+void bellman_ford_pre(vector<vector<Node*>>* map, std::set<vector<int>>* edges) {
+    int temp1,temp2,temp3;
+    vector<int> edge_idx;
+    for (int i=0;i<matrix_size;i++) {
+        for (int j=0;j<matrix_size;j++) {
+            if ((*map)[i][j]->up != NULL) {
+                temp1 = (*map)[i][j]->idx;
+                temp2 = (*map)[i][j]->up->idx;
+                if (temp1 < temp2) {
+                    temp3 = temp2;
+                    temp2 = temp1;
+                    temp1 = temp3;
+                }
+                edge_idx.clear();
+                edge_idx.push_back(temp2);
+                edge_idx.push_back(temp1);
+                (*edges).insert(edge_idx);
+            }
+            if ((*map)[i][j]->down != NULL) {
+                temp1 = (*map)[i][j]->idx;
+                temp2 = (*map)[i][j]->down->idx;
+                if (temp1 < temp2) {
+                    temp3 = temp2;
+                    temp2 = temp1;
+                    temp1 = temp3;
+                }
+                edge_idx.clear();
+                edge_idx.push_back(temp2);
+                edge_idx.push_back(temp1);
+                (*edges).insert(edge_idx);
+            }
+            if ((*map)[i][j]->left != NULL) {
+                temp1 = (*map)[i][j]->idx;
+                temp2 = (*map)[i][j]->left->idx;
+                if (temp1 < temp2) {
+                    temp3 = temp2;
+                    temp2 = temp1;
+                    temp1 = temp3;
+                }
+                edge_idx.clear();
+                edge_idx.push_back(temp2);
+                edge_idx.push_back(temp1);
+                (*edges).insert(edge_idx);
+            }
+            if ((*map)[i][j]->right != NULL) {
+                temp1 = (*map)[i][j]->idx;
+                temp2 = (*map)[i][j]->right->idx;
+                if (temp1 < temp2) {
+                    temp3 = temp2;
+                    temp2 = temp1;
+                    temp1 = temp3;
+                }
+                edge_idx.clear();
+                edge_idx.push_back(temp2);
+                edge_idx.push_back(temp1);
+                (*edges).insert(edge_idx);
+            }
+
+        }
+    }
+}
+
+void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start, vector<int> end) {
+
+}
 
 
 int main() {
     // program start
     // declare variables
-    srand(time(0));
+//    srand(time(0));
+    srand(1);
     auto start_t = std::chrono::system_clock::now();
     vector<vector<Node*>> map;
     vector<vector<Node*>> map_for_BFS;
+    vector<vector<Node*>> map_for_DFS;
+    vector<vector<Node*>> map_for_BF;
     vector<int> start;
     vector<int> end;
     vector<vector<int>> BFS_result;
+    vector<vector<int>> DFS_result;
     vector<int> temp_coord;
     Node* temp;
     int counter;
     int BFS_step;
+    int DFS_step;
     // start coord
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 30;
+    matrix_size = 3;
     // end coord
     x_end = matrix_size - 1;
     y_end = matrix_size - 1;
@@ -317,9 +462,10 @@ int main() {
     std::cout << "Maze generated, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
     // BFS DFS Balmen-Ford Wavefront A* Dijkstra Greedy are to be tested
 
+    cout<<"...................................................................\n"<<endl;
 
     // BFS test
-    cout<<"BFS start\n"<<endl;
+    cout<<"BFS start...\n"<<endl;
     map_for_BFS = map;
     start_t = std::chrono::system_clock::now();
     if (BFS(&map_for_BFS, start, end)) {
@@ -345,10 +491,63 @@ int main() {
         }
     }
     else {
-        cout<<"No path found!";
+        cout<<"No path found!"<<endl;
     }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
 
+    cout<<"...................................................................\n"<<endl;
+    // DFS test
+    temp_coord.clear();
+    cout<<"DFS start...\n"<<endl;
+    map_for_DFS = map;
+    start_t = std::chrono::system_clock::now();
+    DFS(&map_for_DFS, start, end);
+    if ((map_for_DFS)[end[0]][end[1]] -> DFS_depth != std::numeric_limits<int>::max()) {
+        temp = map_for_DFS[end[0]][end[1]];
+        DFS_step = temp->dist_for_BFS;
+        while (1){
+            if (temp->prev_for_BFS == NULL) {
+                break;
+            }
+            temp_coord.push_back(temp->col);
+            temp_coord.push_back(temp->row);
+            DFS_result.push_back(temp_coord);
+            temp_coord.clear();
+            temp = temp->prev_for_BFS;
+        }
+        counter = 0;
+        cout<<"DFS found path with distance of "<<BFS_step<<endl;
+        cout<<"The pass is showed as follows:"<<endl;
+        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
+        for (int i=DFS_result.size()-1;i>-1;i--) {
+            counter ++;
+            cout<<"Step:" <<counter<<"  current coord is:["<<DFS_result[i][0]<<","<<DFS_result[i][1]<<"]"<<endl;
+        }
+    }
+    else {
+        cout<<"No path found!"<<endl;
+    }
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "Depth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+
+    cout<<"...................................................................\n"<<endl;
+    // Bellman Ford test
+
+    temp_coord.clear();
+    cout<<"Bellman Ford start...\n"<<endl;
+    map_for_BF = map;
+    start_t = std::chrono::system_clock::now();
+    std::set<vector<int>> edges;
+    bellman_ford_pre(&map_for_BF, &edges);
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    start_t = std::chrono::system_clock::now();
+//    bellman_ford(&map_for_BF, &edges, start, end);
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
 }
