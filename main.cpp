@@ -31,6 +31,7 @@ struct result_node {
     string Name;
     int steps;
     double time;
+    long visited;
 };
 
 struct Node {
@@ -280,7 +281,7 @@ void BFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, vect
     }
 }
 
-bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end, long * visited) {
     vector<int> result;
     vector<Node*> openlist;
     vector<int> current;
@@ -289,8 +290,10 @@ bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
     current.push_back(start[1]);
     (*map)[current[0]][current[1]]->dist_for_BFS = 0;
     (*map)[current[0]][current[1]]->BFS_inopen = true;
+    (*visited) ++;
     BFS_find_neighbor(map, &openlist, current);
     while(1) {
+        (*visited) ++;
         current_node = openlist[0];
         if (!openlist.empty()){
             openlist.erase(openlist.begin(), openlist.begin()+1);
@@ -361,15 +364,17 @@ Node* DFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, Nod
     return current_node;
 }
 
-bool DFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+bool DFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end, long* visited) {
     Node* current_node;
     vector<Node*> openlist;
     bool flag = false;
     current_node = (*map)[start[0]][start[1]];
     current_node->DFS_depth = 0;
     openlist.push_back(current_node);
+    (*visited) ++;
     current_node = DFS_find_neighbor(map, &openlist, current_node);
     while (1) {
+        (*visited) ++;
         current_node = DFS_find_neighbor(map, &openlist, current_node);
         if (current_node == nullptr) {
             return flag;
@@ -455,11 +460,13 @@ void bellman_ford_relax(vector<vector<Node*>>* map, int from, int to) {
     }
 }
 
-void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start) {
+void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start, long * visited) {
     int t1,t2;
     (*map)[start[0]][start[1]]->BF_dist = 0;
+    (*visited)++;
     for (int i=0;i<(matrix_size)*(matrix_size)-1;i++) {
         for (auto edge : *edges) {
+            (*visited)++;
             t1 = edge[0];
             t2 = edge[1];
             bellman_ford_relax(map, t1, t2);
@@ -487,15 +494,17 @@ int wave_front_find_min_neighbor(Node* temp) {
     return result + 1;
 }
 
-void wave_front(vector<vector<Node*>>* map, vector<int> start) {
+void wave_front(vector<vector<Node*>>* map, vector<int> start, long * visited) {
     int counter;
     Node* temp;
     int new_height;
+    (*visited)++;
     (*map)[start[0]][start[1]]->WF_height = 0;
     while (1) {
         counter = 0;
         for (int i=0;i<matrix_size;i++) {
             for (int j=0;j<matrix_size;j++) {
+                (*visited)++;
                 temp = (*map)[i][j];
                 if (temp->WF_height == std::numeric_limits<int>::max() - 1) {
                     counter ++;
@@ -575,14 +584,16 @@ void DK_find_neighbor (Node* current_node, vector<Node*>* openlist, vector<Node*
     }
 }
 
-void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end, long* visited) {
     vector<Node*> possible_neighbor;
     vector<Node*> openlist;
     vector<Node*> closelist;
     Node* current_node;
     (*map)[start[0]][start[1]]->DK_weight = 0;
     current_node = (*map)[start[0]][start[1]];
+    (*visited)++;
     while (1) {
+        (*visited)++;
         DK_find_neighbor(current_node, &openlist, &closelist);
         if (openlist.empty()) {
             break;
@@ -633,7 +644,7 @@ vector<Node*> A_find_neighbor (Node* current_node) {
     return result;
 }
 
-void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end, long* visited) {
     Node* current_node;
     Node* start_node;
     Node* end_node;
@@ -649,7 +660,9 @@ void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
     current_node->A_H_cost = A_compute_heuristic_distance(current_node, end_node);
     current_node->A_F_cost = current_node->A_H_cost;
     openlist.push_back(current_node);
+    (*visited)++;
     while (!openlist.empty()) {
+        (*visited)++;
         neighbors.clear();
         real_neighbors.clear();
         current_node = A_find_next(&openlist);
@@ -719,6 +732,12 @@ int main() {
     vector<int> end;
     vector<int> temp_coord;
     vector<Node*> direction;
+    long BFS_visited = 0;
+    long DFS_visited = 0;
+    long BF_visited = 0;
+    long WF_visited = 0;
+    long DK_visited = 0;
+    long A_visitied = 0;
     Node* temp;
     int min_number_BF;
     int counter;
@@ -728,7 +747,7 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    cout<<"Input maze size:" <<endl;
+    cout<<"Input an integer for maze size:" <<endl;
     cin>>matrix_size;
     while (matrix_size < 3) {
         cin.clear();
@@ -762,7 +781,7 @@ int main() {
     // BFS test
     cout<<"BFS start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
-    if (BFS(&map_for_BFS, start, end)) {
+    if (BFS(&map_for_BFS, start, end, &BFS_visited)) {
         temp = map_for_BFS[end[0]][end[1]];
         BFS_step = temp->dist_for_BFS;
         while (1){
@@ -791,13 +810,14 @@ int main() {
     BFS_res.Name = "BFS";
     BFS_res.steps = BFS_step + 1;
     BFS_res.time = elapsed_seconds.count()*1000;
+    BFS_res.visited = BFS_visited;
     res_collection.push_back(&BFS_res);
     cout<<"...................................................................\n"<<endl;
     // DFS test
     temp_coord.clear();
     cout<<"DFS start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
-    DFS(&map_for_DFS, start, end);
+    DFS(&map_for_DFS, start, end, &DFS_visited);
     if ((map_for_DFS)[end[0]][end[1]] -> DFS_depth != std::numeric_limits<int>::max()) {
         temp = map_for_DFS[end[0]][end[1]];
         DFS_step = temp->dist_for_BFS;
@@ -829,6 +849,7 @@ int main() {
     DFS_res.Name = "DFS";
     DFS_res.steps = DFS_step + 1;
     DFS_res.time = elapsed_seconds.count()*1000;
+    DFS_res.visited = DFS_visited;
         res_collection.push_back(&DFS_res);
     cout<<"...................................................................\n"<<endl;
     // Bellman Ford test
@@ -841,7 +862,7 @@ int main() {
     elapsed_seconds = end_t-start_t;
     std::cout << "Bellman Ford Pre-process completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     start_t = std::chrono::system_clock::now();
-    bellman_ford(&map_for_BF, &edges, start);
+    bellman_ford(&map_for_BF, &edges, start, &BF_visited);
     temp = map_for_BF[end[0]][end[0]];
     if (map_for_BF[end[0]][end[1]] -> BF_dist != std::numeric_limits<int>::max()-1) {
         while (1) {
@@ -892,6 +913,7 @@ int main() {
     BF_res.Name = "Bellman Ford";
     BF_res.steps = BF_result.size();
     BF_res.time = elapsed_seconds.count()*1000;
+    BF_res.visited = BF_visited;
         res_collection.push_back(&BF_res);
     cout<<"...................................................................\n"<<endl;
     // Wavefront test
@@ -899,7 +921,7 @@ int main() {
     temp_coord.clear();
     cout<<"Lazy_Wavefront start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
-    wave_front(&map_for_WF,start);
+    wave_front(&map_for_WF,start, &WF_visited);
     if (map_for_WF[end[0]][end[1]]->WF_height != std::numeric_limits<int>::max() - 1) {
         temp = map_for_WF[end[1]][end[1]];
         while (1) {
@@ -950,6 +972,7 @@ int main() {
     WF_res.Name = "Lazy_Wavefront";
     WF_res.steps = WF_result.size();
     WF_res.time = elapsed_seconds.count()*1000;
+    WF_res.visited = WF_visited;
     res_collection.push_back(&WF_res);
     cout<<"...................................................................\n"<<endl;
 
@@ -957,7 +980,7 @@ int main() {
     cout<<"Dijkstra start...\n"<<endl;
 
     start_t = std::chrono::system_clock::now();
-    dijkstra(&map_for_DK, start, end);
+    dijkstra(&map_for_DK, start, end, &DK_visited);
     if (map_for_DK[end[0]][end[1]]->DK_weight != std::numeric_limits<int>::max() - 1) {
         temp = map_for_DK[end[0]][end[0]];
         while (1) {
@@ -1008,13 +1031,14 @@ int main() {
     DK_res.Name = "Dijkstra";
     DK_res.steps = DK_result.size();
     DK_res.time = elapsed_seconds.count()*1000;
+    DK_res.visited = DK_visited;
         res_collection.push_back(&DK_res);
     cout<<"...................................................................\n"<<endl;
 
     // A* test
     cout<<"A* start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
-    A_star(&map_for_A, start, end);
+    A_star(&map_for_A, start, end, &A_visitied);
     if (map_for_A[end[0]][end[1]]->A_parent != NULL) {
         temp = map_for_A[end[0]][end[1]];
         while (1) {
@@ -1046,14 +1070,16 @@ int main() {
     A_res.Name = "A-star";
     A_res.steps = A_result.size();
     A_res.time = elapsed_seconds.count()*1000;
+    A_res.visited = A_visitied;
     res_collection.push_back(&A_res);
     cout<<"...................................................................\n"<<endl;
     cout<<"Demo summary"<<endl;
     cout << std::left << std::setw(15) << "Algorithm" << std::left << std::setw(15) << "Steps";
-    cout << std::left << std::setw(15) << "Time(ms)" << endl;
+    cout << std::left << std::setw(15) << "visited nodes"<< std::left << std::setw(15) << "Time(ms)" << endl;
     for (int i = 0; i < res_collection.size(); ++i) {
         cout << std::left << std::setw(15) << res_collection[i]->Name;
         cout << std::left << std::setw(15) << res_collection[i]->steps;
+        cout << std::left << std::setw(15) << res_collection[i]->visited;
         cout << std::dec << std::setw(15) << res_collection[i]->time<<endl;
     }
     return 0;
