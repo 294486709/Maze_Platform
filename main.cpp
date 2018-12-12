@@ -683,8 +683,8 @@ void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
         }
 
     }
-    
-    
+
+
 }
 
 
@@ -839,7 +839,7 @@ int main() {
     bellman_ford_pre(&map_for_BF, &edges);
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Bellman Ford Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    std::cout << "Bellman Ford Pre-process completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     start_t = std::chrono::system_clock::now();
     bellman_ford(&map_for_BF, &edges, start);
     temp = map_for_BF[end[0]][end[0]];
@@ -897,7 +897,7 @@ int main() {
     // Wavefront test
 
     temp_coord.clear();
-    cout<<"Wavefront start...\n"<<endl;
+    cout<<"Lazy_Wavefront start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
     wave_front(&map_for_WF,start);
     if (map_for_WF[end[0]][end[1]]->WF_height != std::numeric_limits<int>::max() - 1) {
@@ -933,7 +933,7 @@ int main() {
             temp = direction[min_number_BF];
         }
         counter = 0;
-        cout<<"Wavefront found path with distance of "<<WF_result.size()<<endl;
+        cout<<"Lazy_Wavefront found path with distance of "<<WF_result.size()<<endl;
         cout<<"The pass is showed as follows:"<<endl;
 //        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
         for (int i=WF_result.size()-1;i>-1;i--) {
@@ -946,8 +946,8 @@ int main() {
     }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Wavefront Search completed elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
-    WF_res.Name = "Wavefront";
+    std::cout << "Lazy_Wavefront Search completed elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    WF_res.Name = "Lazy_Wavefront";
     WF_res.steps = WF_result.size();
     WF_res.time = elapsed_seconds.count()*1000;
     res_collection.push_back(&WF_res);
