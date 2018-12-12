@@ -1,5 +1,5 @@
-#Maze solution with Multiple Path Finding Algorithms
+# Maze solution with Multiple Path Finding Algorithms
 
-##Yiuxe Zhang, Zheran Li
+## Yiuxe Zhang, Zheran Li
 
-##Compile main.cpp and run it.
+## Compile main.cpp and run it.
