@@ -75,6 +75,9 @@ bool check_element_in_vector(Node* element, vector<Node*> target_vector);
 Node* DK_find_min_in_openlist (vector<Node*>* openlist);
 void DK_find_neighbor (Node* current_node, vector<Node*>* openlist, vector<Node*>* closelist);
 void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end);
+void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end);
+vector<Node*> A_find_neighbor (Node* current_node);
+double A_compute_heuristic_distance(Node* current_node, Node* end_node);
 
 
 
