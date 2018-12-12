@@ -782,7 +782,7 @@ int main() {
     cout<<"BFS start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
     if (BFS(&map_for_BFS, start, end, &BFS_visited)) {
-            end_t = std::chrono::system_clock::now();
+
         temp = map_for_BFS[end[0]][end[1]];
         BFS_step = temp->dist_for_BFS;
         while (1){
@@ -805,7 +805,7 @@ int main() {
         }
     }
     else { cout<<"No path found!"<<endl; }
-
+            end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     BFS_res.Name = "BFS";
@@ -865,7 +865,7 @@ int main() {
     std::cout << "Bellman Ford Pre-process completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     start_t = std::chrono::system_clock::now();
     bellman_ford(&map_for_BF, &edges, start, &BF_visited);
-        end_t = std::chrono::system_clock::now();
+//        end_t = std::chrono::system_clock::now();
     temp = map_for_BF[end[0]][end[0]];
     if (map_for_BF[end[0]][end[1]] -> BF_dist != std::numeric_limits<int>::max()-1) {
         while (1) {
@@ -910,7 +910,7 @@ int main() {
     else {
         cout<<"No path found!"<<endl;
     }
-
+            end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Bellman Ford Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     BF_res.Name = "Bellman Ford";
@@ -925,7 +925,7 @@ int main() {
     cout<<"Lazy_Wavefront start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
     wave_front(&map_for_WF,start, &WF_visited);
-        end_t = std::chrono::system_clock::now();
+//        end_t = std::chrono::system_clock::now();
     if (map_for_WF[end[0]][end[1]]->WF_height != std::numeric_limits<int>::max() - 1) {
         temp = map_for_WF[end[1]][end[1]];
         while (1) {
@@ -970,7 +970,7 @@ int main() {
     else {
         cout<<"No path found!"<<endl;
     }
-
+            end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Lazy_Wavefront Search completed elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     WF_res.Name = "Lazy_Wavefront";
@@ -985,7 +985,7 @@ int main() {
 
     start_t = std::chrono::system_clock::now();
     dijkstra(&map_for_DK, start, end, &DK_visited);
-        end_t = std::chrono::system_clock::now();
+//        end_t = std::chrono::system_clock::now();
     if (map_for_DK[end[0]][end[1]]->DK_weight != std::numeric_limits<int>::max() - 1) {
         temp = map_for_DK[end[0]][end[0]];
         while (1) {
@@ -1030,7 +1030,7 @@ int main() {
     else {
                 cout<<"No path found!"<<endl;
     }
-
+            end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Dijkstra Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     DK_res.Name = "Dijkstra";
@@ -1044,7 +1044,7 @@ int main() {
     cout<<"A* start...\n"<<endl;
     start_t = std::chrono::system_clock::now();
     A_star(&map_for_A, start, end, &A_visitied);
-        end_t = std::chrono::system_clock::now();
+//        end_t = std::chrono::system_clock::now();
     if (map_for_A[end[0]][end[1]]->A_parent != NULL) {
         temp = map_for_A[end[0]][end[1]];
         while (1) {
@@ -1070,7 +1070,7 @@ int main() {
     else {
         cout<<"No path found!"<<endl;
     }
-
+            end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "A* Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     A_res.Name = "A-star";
