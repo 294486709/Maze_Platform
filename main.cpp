@@ -41,6 +41,7 @@ struct Node {
     int DFS_depth = std::numeric_limits<int>::max() -1;
     int BF_dist = std::numeric_limits<int>::max() - 1;
     int WF_height = std::numeric_limits<int>::max() - 1;
+    int DK_weight = std::numeric_limits<int>::max() - 1;
 };
 
 void creat_row(vector<Node*>* a, int i);
@@ -135,10 +136,7 @@ vector<int> find_neightbors(vector<vector<Node*>>* map, vector<vector<int>>* ope
         (*openlist).erase(openlist->begin(),openlist->begin()+1);
         return (*openlist)[0];
     }
-
-//    cout<<time(0)<<endl;
     rand_index = ((double)rand() / double(RAND_MAX))*(num_open);
-//    cout<< rand_index<<" "<< num_open<<endl;
     next.push_back(possible_neighbor[rand_index][0]);
     next.push_back(possible_neighbor[rand_index][1]);
     next.push_back(current_element[0]);
@@ -320,7 +318,6 @@ Node* DFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, Nod
             current_node->DFS_visited = true;
             current_node = (*openlist)[0];
             openlist->erase(openlist->begin(),openlist->begin()+1);
-
             return current_node;
         }
     }
@@ -333,7 +330,6 @@ Node* DFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, Nod
             }
         }
         current_node = (*openlist)[0];
-
     }
     return current_node;
 }
@@ -481,13 +477,95 @@ void wave_front(vector<vector<Node*>>* map, vector<int> start) {
                         temp->WF_height = new_height;
                     }
                 }
-
             }
         }
         if (counter == 0) {
             break;
         }
+    }
+}
 
+bool check_element_in_vector(Node* element, vector<Node*> target_vector) {
+    if (find(target_vector.begin(), target_vector.end(), element) == target_vector.end()) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+Node* DK_find_min_in_openlist (vector<Node*>* openlist) {
+    int min_index;
+    int min_value = std::numeric_limits<int>::max() - 1;
+    Node* result;
+    for (int i=0;i<(*openlist).size();i++) {
+        if ((*openlist)[i]->DK_weight < min_value) {
+            min_index = i;
+            min_value = (*openlist)[i]->DK_weight;
+        }
+    }
+    result = (*openlist)[min_index];
+    (*openlist).erase(openlist->begin()+min_index, openlist->begin() + min_index + 1);
+    return result;
+}
+
+void DK_find_neighbor (Node* current_node, vector<Node*>* openlist, vector<Node*>* closelist) {
+    vector<Node*> possible_neighbor;
+    vector<int> removelist;
+    (*closelist).push_back(current_node);
+    if (current_node->up != NULL) {
+        possible_neighbor.push_back(current_node->up);
+    }
+    if (current_node->down != NULL) {
+        possible_neighbor.push_back(current_node->down);
+    }
+    if (current_node->left != NULL) {
+        possible_neighbor.push_back(current_node->left);
+    }
+    if (current_node->right != NULL) {
+        possible_neighbor.push_back(current_node->right);
+    }
+    for (int i=0;i<possible_neighbor.size();i++) {
+        if (check_element_in_vector(possible_neighbor[i], *closelist)) {
+            removelist.push_back(i);
+            continue;
+        }
+        if (check_element_in_vector(possible_neighbor[i], *openlist)) {
+            removelist.push_back(i);
+        }
+    }
+    if (!removelist.empty()) {
+        std::reverse(removelist.begin(), removelist.end());
+        for (int i=0;i<removelist.size();i++) {
+            possible_neighbor.erase(possible_neighbor.begin()+removelist[i],possible_neighbor.begin()+removelist[i]+1);
+        }
+    }
+    if (!possible_neighbor.empty()) {
+        for (auto a : possible_neighbor) {
+            a->DK_weight = current_node->DK_weight +1;
+            openlist->push_back(a);
+        }
+    }
+}
+
+void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+    vector<Node*> possible_neighbor;
+    vector<Node*> openlist;
+    vector<Node*> closelist;
+    Node* current_node;
+    (*map)[start[0]][start[1]]->DK_weight = 0;
+    current_node = (*map)[start[0]][start[1]];
+    while (1) {
+        DK_find_neighbor(current_node, &openlist, &closelist);
+        if (openlist.empty()) {
+            break;
+        }
+        else {
+            current_node = DK_find_min_in_openlist(&openlist);
+            if (current_node == (*map)[end[0]][end[1]]) {
+                break;
+            }
+        }
     }
 }
 
@@ -503,10 +581,12 @@ int main() {
     vector<vector<Node*>> map_for_DFS;
     vector<vector<Node*>> map_for_BF;
     vector<vector<Node*>> map_for_WF;
+    vector<vector<Node*>> map_for_DK;
     vector<vector<int>> BFS_result;
     vector<vector<int>> DFS_result;
     vector<vector<int>> BF_result;
     vector<vector<int>> WF_result;
+    vector<vector<int>> DK_result;
     std::set<vector<int>> edges;
     vector<int> possible_neighbor;
     vector<int> start;
@@ -522,7 +602,7 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 5;
+    matrix_size = 50;
     // end coord
     x_end = matrix_size - 1;
     y_end = matrix_size - 1;
@@ -538,6 +618,7 @@ int main() {
     map_for_BFS = map;
     map_for_DFS = map;
     map_for_WF = map;
+    map_for_DK = map;
     // BFS DFS Balmen-Ford Wavefront A* Dijkstra Greedy are to be tested
 
     cout<<"...................................................................\n"<<endl;
@@ -570,7 +651,7 @@ int main() {
     else { cout<<"No path found!"<<endl; }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
+    std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     //
     cout<<"...................................................................\n"<<endl;
     // DFS test
@@ -605,7 +686,7 @@ int main() {
     }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Depth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    std::cout << "Depth First Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
 
     cout<<"...................................................................\n"<<endl;
     // Bellman Ford test
@@ -616,7 +697,7 @@ int main() {
     bellman_ford_pre(&map_for_BF, &edges);
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
+    std::cout << "Bellman Ford Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
     start_t = std::chrono::system_clock::now();
     bellman_ford(&map_for_BF, &edges, start);
     temp = map_for_BF[end[0]][end[0]];
@@ -665,7 +746,7 @@ int main() {
     }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    std::cout << "Bellman Ford Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
 
     cout<<"...................................................................\n"<<endl;
     // Wavefront test
@@ -675,12 +756,13 @@ int main() {
     start_t = std::chrono::system_clock::now();
     wave_front(&map_for_WF,start);
     if (map_for_WF[end[0]][end[1]]->WF_height != std::numeric_limits<int>::max() - 1) {
+        temp = map_for_WF[end[1]][end[1]];
         while (1) {
             temp_coord.clear();
             temp_coord.push_back(temp->row);
             temp_coord.push_back(temp->col);
             WF_result.push_back(temp_coord);
-            if (temp_coord == end) {
+            if (temp_coord == start) {
                 break;
             }
             possible_neighbor.clear();
@@ -701,7 +783,7 @@ int main() {
                 possible_neighbor.push_back(temp->right->WF_height);
                 direction.push_back(temp->right);
             }
-            min_number_BF = *std::max_element(possible_neighbor.begin(),possible_neighbor.end());
+            min_number_BF = *std::min_element(possible_neighbor.begin(),possible_neighbor.end());
             min_number_BF = std::distance(possible_neighbor.begin(), find(possible_neighbor.begin(), possible_neighbor.end(), min_number_BF));
             temp = direction[min_number_BF];
         }
@@ -709,7 +791,7 @@ int main() {
         cout<<"Wavefront found path with distance of "<<WF_result.size()<<endl;
         cout<<"The pass is showed as follows:"<<endl;
 //        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
-        for (int i=0;i<WF_result.size();i++) {
+        for (int i=WF_result.size()-1;i>-1;i--) {
             cout<<"Step:" <<counter<<"  current coord is:["<<WF_result[i][0]<<","<<WF_result[i][1]<<"]"<<endl;
             counter ++;
         }
@@ -719,5 +801,61 @@ int main() {
     }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Wavefront Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
+    std::cout << "Wavefront Search completed elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+
+
+    cout<<"...................................................................\n"<<endl;
+
+    // Dijkstra test
+    cout<<"Dijkstra start...\n"<<endl;
+
+    start_t = std::chrono::system_clock::now();
+    dijkstra(&map_for_DK, start, end);
+    if (map_for_DK[end[0]][end[1]]->DK_weight != std::numeric_limits<int>::max() - 1) {
+        temp = map_for_DK[end[0]][end[0]];
+        while (1) {
+            temp_coord.clear();
+            temp_coord.push_back(temp->row);
+            temp_coord.push_back(temp->col);
+            DK_result.push_back(temp_coord);
+            if (temp_coord == start) {
+                break;
+            }
+            possible_neighbor.clear();
+            direction.clear();
+            if (temp->up != NULL) {
+                possible_neighbor.push_back(temp->up->DK_weight);
+                direction.push_back(temp->up);
+            }
+            if (temp->down != NULL) {
+                possible_neighbor.push_back(temp->down->DK_weight);
+                direction.push_back(temp->down);
+            }
+            if (temp->left != NULL) {
+                possible_neighbor.push_back(temp->left->DK_weight);
+                direction.push_back(temp->left);
+            }
+            if (temp->right != NULL) {
+                possible_neighbor.push_back(temp->right->DK_weight);
+                direction.push_back(temp->right);
+            }
+            min_number_BF = *std::min_element(possible_neighbor.begin(),possible_neighbor.end());
+            min_number_BF = std::distance(possible_neighbor.begin(), find(possible_neighbor.begin(), possible_neighbor.end(), min_number_BF));
+            temp = direction[min_number_BF];
+        }
+        counter = 0;
+        cout<<"Dijkstra found path with distance of "<<DK_result.size()<<endl;
+        cout<<"The pass is showed as follows:"<<endl;
+        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
+        for (int i=DFS_result.size()-1;i> -1;i--) {
+            counter ++;
+            cout<<"Step:" <<counter<<"  current coord is:["<<DK_result[i][0]<<","<<DK_result[i][1]<<"]"<<endl;
+        }
+    }
+    else {
+                cout<<"No path found!"<<endl;
+    }
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "Dijkstra Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
 }
