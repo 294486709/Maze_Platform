@@ -3,9 +3,10 @@
 #include <vector>
 #include <stdlib.h>
 #include <chrono>
-#include <algorithm>
-#include <limits>
 #include <set>
+#include <algorithm>
+#include <iomanip>
+#include <cmath>
 
 // defalut parameters
 int x_start = 0;
@@ -21,9 +22,16 @@ using std::endl;
 using std::string;
 using std::rand;
 using std::find;
+using std::cin;
 
 
 typedef struct Node Data_Node;
+
+struct result_node {
+    string Name;
+    int steps;
+    double time;
+};
 
 struct Node {
     int row;
@@ -42,6 +50,10 @@ struct Node {
     int BF_dist = std::numeric_limits<int>::max() - 1;
     int WF_height = std::numeric_limits<int>::max() - 1;
     int DK_weight = std::numeric_limits<int>::max() - 1;
+    double A_G_cost = std::numeric_limits<double>::max() - 1;;
+    double A_H_cost = std::numeric_limits<double>::max() - 1;;
+    double A_F_cost = std::numeric_limits<double>::max() - 1;;
+    struct Node* A_parent;
 };
 
 void creat_row(vector<Node*>* a, int i);
@@ -52,6 +64,18 @@ void clear_wall(vector<vector<Node*>>* map, vector<int> current_open);
 void build_maze(vector<vector<Node*>>* map);
 void BFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, vector<int> current_element);
 bool BFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end);
+Node* DFS_find_neighbor(vector<vector<Node*>>* map, vector<Node*>* openlist, Node* current_node);
+bool DFS(vector<vector<Node*>>* map, vector<int> start, vector<int> end);
+void bellman_ford_pre(vector<vector<Node*>>* map, std::set<vector<int>>* edges);
+void bellman_ford_relax(vector<vector<Node*>>* map, int from, int to);
+void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start);
+int wave_front_find_min_neighbor(Node* temp);
+void wave_front(vector<vector<Node*>>* map, vector<int> start);
+bool check_element_in_vector(Node* element, vector<Node*> target_vector);
+Node* DK_find_min_in_openlist (vector<Node*>* openlist);
+void DK_find_neighbor (Node* current_node, vector<Node*>* openlist, vector<Node*>* closelist);
+void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end);
+
 
 
 void create_node(Node* a, int i, int j){
@@ -569,12 +593,102 @@ void dijkstra(vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
     }
 }
 
+double A_compute_heuristic_distance(Node* current_node, Node* end_node) {
+    double result;
+    result = pow((pow((current_node->row - end_node->row),2) + (pow((current_node->col - end_node->col),2))),0.5);
+    return result;
+}
+
+
+Node* A_find_next (vector<Node*>* openlist) {
+    vector<double> F_value;
+    Node* result;
+    int min_index;
+    for (auto i : *openlist) {
+        F_value.push_back(i->A_F_cost);
+    }
+    min_index = std::distance(F_value.begin(), find(F_value.begin(), F_value.end(), *std::min_element(F_value.begin(),F_value.end())));
+    result = (*openlist)[min_index];
+    (*openlist).erase((*openlist).begin() + min_index, (*openlist).begin() + min_index + 1);
+    return result;
+}
+
+vector<Node*> A_find_neighbor (Node* current_node) {
+    vector<Node*> result;
+    if ((*current_node).up != NULL) {
+        result.push_back((*current_node).up);
+    }
+    if ((*current_node).down != NULL) {
+        result.push_back((*current_node).down);
+    }
+    if ((*current_node).left != NULL) {
+        result.push_back((*current_node).left);
+    }
+    if ((*current_node).right != NULL) {
+        result.push_back((*current_node).right);
+    }
+    return result;
+}
+
+void A_star (vector<vector<Node*>>* map, vector<int> start, vector<int> end) {
+    Node* current_node;
+    Node* start_node;
+    Node* end_node;
+    vector<Node*> openlist;
+    vector<Node*> closelist;
+    vector<Node*> neighbors;
+    vector<Node*> real_neighbors;
+    double tentative_g_score;
+    bool tentative_better;
+    end_node = (*map)[end[0]][end[1]];
+    current_node = (*map)[start[0]][start[1]];
+    current_node->A_G_cost = 0;
+    current_node->A_H_cost = A_compute_heuristic_distance(current_node, end_node);
+    current_node->A_F_cost = current_node->A_H_cost;
+    openlist.push_back(current_node);
+    while (!openlist.empty()) {
+        neighbors.clear();
+        real_neighbors.clear();
+        current_node = A_find_next(&openlist);
+        if (current_node == end_node) {
+            break;
+        }
+        closelist.push_back(current_node);
+        neighbors = A_find_neighbor(current_node);
+        for (int i=0;i<neighbors.size();i++) {
+            if (find(closelist.begin(), closelist.end(), neighbors[i]) != closelist.end()) {
+                continue;
+            }
+            tentative_g_score = current_node->A_G_cost + A_compute_heuristic_distance(neighbors[i], current_node);
+            if (find(openlist.begin(), openlist.end(), neighbors[i]) == closelist.end()) {
+                tentative_better = true;
+            }
+            else if (tentative_g_score < neighbors[i]->A_G_cost) {
+                tentative_better = true;
+            }
+            else {
+                tentative_better = false;
+            }
+            if (tentative_better) {
+                neighbors[i]->A_parent = current_node;
+                neighbors[i]->A_G_cost = tentative_g_score;
+                neighbors[i]->A_H_cost = A_compute_heuristic_distance(neighbors[i], end_node);
+                neighbors[i]->A_F_cost = neighbors[i]->A_H_cost + neighbors[i]->A_G_cost;
+                openlist.push_back(neighbors[i]);
+            }
+
+        }
+
+    }
+    
+    
+}
+
 
 int main() {
     // program start
     // declare variables
-//    srand(time(0));
-    srand(1);
+    srand(time(NULL));
     auto start_t = std::chrono::system_clock::now();
     vector<vector<Node*>> map;
     vector<vector<Node*>> map_for_BFS;
@@ -582,12 +696,21 @@ int main() {
     vector<vector<Node*>> map_for_BF;
     vector<vector<Node*>> map_for_WF;
     vector<vector<Node*>> map_for_DK;
+    vector<vector<Node*>> map_for_A;
     vector<vector<int>> BFS_result;
     vector<vector<int>> DFS_result;
     vector<vector<int>> BF_result;
     vector<vector<int>> WF_result;
     vector<vector<int>> DK_result;
+    vector<vector<int>> A_result;
+    vector<result_node*> res_collection;
     std::set<vector<int>> edges;
+    result_node BFS_res;
+    result_node DFS_res;
+    result_node BF_res;
+    result_node WF_res;
+    result_node DK_res;
+    result_node A_res;
     vector<int> possible_neighbor;
     vector<int> start;
     vector<int> end;
@@ -602,7 +725,16 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 50;
+    cout<<"Input maze size:" <<endl;
+    cin>>matrix_size;
+    while (matrix_size < 3) {
+        cin.clear();
+        cin.ignore(10000, '\n');
+        cout<<"Invalid input, try again"<<endl;
+        cin>>matrix_size;
+
+    }
+//    matrix_size = 50;
     // end coord
     x_end = matrix_size - 1;
     y_end = matrix_size - 1;
@@ -619,6 +751,7 @@ int main() {
     map_for_DFS = map;
     map_for_WF = map;
     map_for_DK = map;
+    map_for_A = map;
     // BFS DFS Balmen-Ford Wavefront A* Dijkstra Greedy are to be tested
 
     cout<<"...................................................................\n"<<endl;
@@ -652,7 +785,10 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
-    //
+    BFS_res.Name = "BFS";
+    BFS_res.steps = BFS_step + 1;
+    BFS_res.time = elapsed_seconds.count()*1000;
+    res_collection.push_back(&BFS_res);
     cout<<"...................................................................\n"<<endl;
     // DFS test
     temp_coord.clear();
@@ -687,7 +823,10 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Depth First Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
-
+    DFS_res.Name = "DFS";
+    DFS_res.steps = DFS_step + 1;
+    DFS_res.time = elapsed_seconds.count()*1000;
+        res_collection.push_back(&DFS_res);
     cout<<"...................................................................\n"<<endl;
     // Bellman Ford test
 
@@ -747,7 +886,10 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Bellman Ford Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
-
+    BF_res.Name = "Bellman Ford";
+    BF_res.steps = BF_result.size();
+    BF_res.time = elapsed_seconds.count()*1000;
+        res_collection.push_back(&BF_res);
     cout<<"...................................................................\n"<<endl;
     // Wavefront test
 
@@ -802,8 +944,10 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Wavefront Search completed elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
-
-
+    WF_res.Name = "Wavefront";
+    WF_res.steps = WF_result.size();
+    WF_res.time = elapsed_seconds.count()*1000;
+    res_collection.push_back(&WF_res);
     cout<<"...................................................................\n"<<endl;
 
     // Dijkstra test
@@ -847,7 +991,7 @@ int main() {
         cout<<"Dijkstra found path with distance of "<<DK_result.size()<<endl;
         cout<<"The pass is showed as follows:"<<endl;
         cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
-        for (int i=DFS_result.size()-1;i> -1;i--) {
+        for (int i=DK_result.size()-1;i> -1;i--) {
             counter ++;
             cout<<"Step:" <<counter<<"  current coord is:["<<DK_result[i][0]<<","<<DK_result[i][1]<<"]"<<endl;
         }
@@ -858,4 +1002,56 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Dijkstra Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    DK_res.Name = "Dijkstra";
+    DK_res.steps = DK_result.size();
+    DK_res.time = elapsed_seconds.count()*1000;
+        res_collection.push_back(&DK_res);
+    cout<<"...................................................................\n"<<endl;
+
+    // A* test
+    cout<<"A* start...\n"<<endl;
+    start_t = std::chrono::system_clock::now();
+    A_star(&map_for_A, start, end);
+    if (map_for_A[end[0]][end[1]]->A_parent != NULL) {
+        temp = map_for_A[end[0]][end[1]];
+        while (1) {
+            temp_coord.clear();
+            temp_coord.push_back(temp->row);
+            temp_coord.push_back(temp->col);
+            A_result.push_back(temp_coord);
+            if (temp_coord == start) {
+                break;
+            }
+            temp = temp->A_parent;
+        }
+        counter = 0;
+        cout<<"A* found path with distance of "<<A_result.size()<<endl;
+        cout<<"The pass is showed as follows:"<<endl;
+//        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
+        for (int i=A_result.size()-1;i> -1;i--) {
+            counter ++;
+            cout<<"Step:" <<counter<<"  current coord is:["<<DK_result[i][0]<<","<<DK_result[i][1]<<"]"<<endl;
+        }
+    }
+
+    else {
+        cout<<"No path found!"<<endl;
+    }
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "A* Search completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    A_res.Name = "A-star";
+    A_res.steps = A_result.size();
+    A_res.time = elapsed_seconds.count()*1000;
+    res_collection.push_back(&A_res);
+    cout<<"...................................................................\n"<<endl;
+    cout<<"Demo summary"<<endl;
+    cout << std::left << std::setw(15) << "Algorithm" << std::left << std::setw(15) << "Steps";
+    cout << std::left << std::setw(15) << "Time(ms)" << endl;
+    for (int i = 0; i < res_collection.size(); ++i) {
+        cout << std::left << std::setw(15) << res_collection[i]->Name;
+        cout << std::left << std::setw(15) << res_collection[i]->steps;
+        cout << std::dec << std::setw(15) << res_collection[i]->time<<endl;
+    }
+    return 0;
 }
