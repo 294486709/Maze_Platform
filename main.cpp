@@ -39,7 +39,7 @@ struct Node {
     bool BFS_inopen = false;
     bool DFS_visited = false;
     int DFS_depth = std::numeric_limits<int>::max();
-    int BF_dist = std::numeric_limits<int>::max();
+    int BF_dist = std::numeric_limits<int>::max() - 1;
 };
 
 void creat_row(vector<Node*>* a, int i);
@@ -420,8 +420,28 @@ void bellman_ford_pre(vector<vector<Node*>>* map, std::set<vector<int>>* edges) 
     }
 }
 
-void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start, vector<int> end) {
+void bellman_ford_relax(vector<vector<Node*>>* map, int from, int to) {
+    int from_x, from_y, to_x, to_y;
+    from_x = from / matrix_size;
+    from_y = from % matrix_size;
+    to_x = to / matrix_size;
+    to_y = to % matrix_size;
+    if (((*map)[from_x][from_y]->BF_dist) > ((*map)[to_x][to_y]->BF_dist + 1)) {
+        (*map)[from_x][from_y]->BF_dist = (*map)[to_x][to_y]->BF_dist + 1;
+    }
+}
 
+void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vector<int> start) {
+    int t1,t2;
+    (*map)[start[0]][start[1]]->BF_dist = 0;
+    for (int i=0;i<(matrix_size)*(matrix_size)-1;i++) {
+        for (auto edge : *edges) {
+            t1 = edge[0];
+            t2 = edge[1];
+            bellman_ford_relax(map, t1, t2);
+            bellman_ford_relax(map, t2, t1);
+        }
+    }
 }
 
 
@@ -435,12 +455,16 @@ int main() {
     vector<vector<Node*>> map_for_BFS;
     vector<vector<Node*>> map_for_DFS;
     vector<vector<Node*>> map_for_BF;
-    vector<int> start;
-    vector<int> end;
     vector<vector<int>> BFS_result;
     vector<vector<int>> DFS_result;
+    vector<vector<int>> BF_result;
+    vector<int> possible_neighbor;
+    vector<int> start;
+    vector<int> end;
     vector<int> temp_coord;
+    vector<Node*> direction;
     Node* temp;
+    int min_number_BF;
     int counter;
     int BFS_step;
     int DFS_step;
@@ -448,7 +472,7 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 3;
+    matrix_size = 8;
     // end coord
     x_end = matrix_size - 1;
     y_end = matrix_size - 1;
@@ -460,13 +484,15 @@ int main() {
     auto end_t = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = end_t-start_t;
     std::cout << "Maze generated, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
+    map_for_BF = map;
+    map_for_BFS = map;
+    map_for_DFS = map;
     // BFS DFS Balmen-Ford Wavefront A* Dijkstra Greedy are to be tested
 
     cout<<"...................................................................\n"<<endl;
 
     // BFS test
     cout<<"BFS start...\n"<<endl;
-    map_for_BFS = map;
     start_t = std::chrono::system_clock::now();
     if (BFS(&map_for_BFS, start, end)) {
         temp = map_for_BFS[end[0]][end[1]];
@@ -501,7 +527,7 @@ int main() {
     // DFS test
     temp_coord.clear();
     cout<<"DFS start...\n"<<endl;
-    map_for_DFS = map;
+
     start_t = std::chrono::system_clock::now();
     DFS(&map_for_DFS, start, end);
     if ((map_for_DFS)[end[0]][end[1]] -> DFS_depth != std::numeric_limits<int>::max()) {
@@ -518,7 +544,7 @@ int main() {
             temp = temp->prev_for_BFS;
         }
         counter = 0;
-        cout<<"DFS found path with distance of "<<BFS_step<<endl;
+        cout<<"DFS found path with distance of "<<DFS_step<<endl;
         cout<<"The pass is showed as follows:"<<endl;
         cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
         for (int i=DFS_result.size()-1;i>-1;i--) {
@@ -538,15 +564,59 @@ int main() {
 
     temp_coord.clear();
     cout<<"Bellman Ford start...\n"<<endl;
-    map_for_BF = map;
+
     start_t = std::chrono::system_clock::now();
     std::set<vector<int>> edges;
     bellman_ford_pre(&map_for_BF, &edges);
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
-    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+    std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
     start_t = std::chrono::system_clock::now();
-//    bellman_ford(&map_for_BF, &edges, start, end);
+    bellman_ford(&map_for_BF, &edges, start);
+    temp = map_for_BF[end[0]][end[0]];
+    if (map_for_BF[end[0]][end[1]] -> BF_dist != std::numeric_limits<int>::max()-1) {
+        while (1) {
+            temp_coord.clear();
+            temp_coord.push_back(temp->row);
+            temp_coord.push_back(temp->col);
+            BF_result.push_back(temp_coord);
+            if (temp_coord == start) {
+                break;
+            }
+            possible_neighbor.clear();
+            direction.clear();
+            if (temp->up != NULL) {
+                possible_neighbor.push_back(temp->up->BF_dist);
+                direction.push_back(temp->up);
+            }
+            if (temp->down != NULL) {
+                possible_neighbor.push_back(temp->down->BF_dist);
+                direction.push_back(temp->down);
+            }
+            if (temp->left != NULL) {
+                possible_neighbor.push_back(temp->left->BF_dist);
+                direction.push_back(temp->left);
+            }
+            if (temp->right != NULL) {
+                possible_neighbor.push_back(temp->right->BF_dist);
+                direction.push_back(temp->right);
+            }
+            min_number_BF = *std::min_element(possible_neighbor.begin(),possible_neighbor.end());
+            min_number_BF = std::distance(possible_neighbor.begin(), find(possible_neighbor.begin(), possible_neighbor.end(), min_number_BF));
+            temp = direction[min_number_BF];
+        }
+        counter = 0;
+        cout<<"Ballman Ford found path with distance of "<<BF_result.size()<<endl;
+        cout<<"The pass is showed as follows:"<<endl;
+        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
+        for (int i=DFS_result.size()-1;i>-1;i--) {
+            counter ++;
+            cout<<"Step:" <<counter<<"  current coord is:["<<DFS_result[i][0]<<","<<DFS_result[i][1]<<"]"<<endl;
+        }
+    }
+    else {
+        cout<<"No path found!"<<endl;
+    }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
