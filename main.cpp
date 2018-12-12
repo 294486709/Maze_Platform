@@ -38,8 +38,9 @@ struct Node {
     int dist_for_BFS;
     bool BFS_inopen = false;
     bool DFS_visited = false;
-    int DFS_depth = std::numeric_limits<int>::max();
+    int DFS_depth = std::numeric_limits<int>::max() -1;
     int BF_dist = std::numeric_limits<int>::max() - 1;
+    int WF_height = std::numeric_limits<int>::max() - 1;
 };
 
 void creat_row(vector<Node*>* a, int i);
@@ -444,6 +445,52 @@ void bellman_ford(vector<vector<Node*>>* map, std::set<vector<int>>* edges, vect
     }
 }
 
+int wave_front_find_min_neighbor(Node* temp) {
+    int result;
+    vector<int> possible_neighbor;
+    if (temp->up != NULL) {
+        possible_neighbor.push_back(temp->up->WF_height);
+    }
+    if (temp->down != NULL) {
+        possible_neighbor.push_back(temp->down->WF_height);
+    }
+    if (temp->left != NULL) {
+        possible_neighbor.push_back(temp->left->WF_height);
+    }
+    if (temp->right != NULL) {
+        possible_neighbor.push_back(temp->right->WF_height);
+    }
+    result = *std::min_element(possible_neighbor.begin(),possible_neighbor.end());
+    return result + 1;
+}
+
+void wave_front(vector<vector<Node*>>* map, vector<int> start) {
+    int counter;
+    Node* temp;
+    int new_height;
+    (*map)[start[0]][start[1]]->WF_height = 0;
+    while (1) {
+        counter = 0;
+        for (int i=0;i<matrix_size;i++) {
+            for (int j=0;j<matrix_size;j++) {
+                temp = (*map)[i][j];
+                if (temp->WF_height == std::numeric_limits<int>::max() - 1) {
+                    counter ++;
+                    new_height = wave_front_find_min_neighbor(temp);
+                    if (new_height < temp->WF_height) {
+                        temp->WF_height = new_height;
+                    }
+                }
+
+            }
+        }
+        if (counter == 0) {
+            break;
+        }
+
+    }
+}
+
 
 int main() {
     // program start
@@ -455,9 +502,12 @@ int main() {
     vector<vector<Node*>> map_for_BFS;
     vector<vector<Node*>> map_for_DFS;
     vector<vector<Node*>> map_for_BF;
+    vector<vector<Node*>> map_for_WF;
     vector<vector<int>> BFS_result;
     vector<vector<int>> DFS_result;
     vector<vector<int>> BF_result;
+    vector<vector<int>> WF_result;
+    std::set<vector<int>> edges;
     vector<int> possible_neighbor;
     vector<int> start;
     vector<int> end;
@@ -472,7 +522,7 @@ int main() {
     start.push_back(x_start);
     start.push_back(y_start);
     // matrix size
-    matrix_size = 8;
+    matrix_size = 5;
     // end coord
     x_end = matrix_size - 1;
     y_end = matrix_size - 1;
@@ -487,6 +537,7 @@ int main() {
     map_for_BF = map;
     map_for_BFS = map;
     map_for_DFS = map;
+    map_for_WF = map;
     // BFS DFS Balmen-Ford Wavefront A* Dijkstra Greedy are to be tested
 
     cout<<"...................................................................\n"<<endl;
@@ -508,7 +559,7 @@ int main() {
             temp = temp->prev_for_BFS;
         }
         counter = 0;
-        cout<<"BFS found path with distance of "<<BFS_step<<endl;
+        cout<<"BFS found path with distance of "<<BFS_step+1<<endl;
         cout<<"The pass is showed as follows:"<<endl;
         cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
         for (int i=BFS_result.size()-1;i>-1;i--) {
@@ -516,18 +567,15 @@ int main() {
             cout<<"Step:" <<counter<<"  current coord is:["<<BFS_result[i][0]<<","<<BFS_result[i][1]<<"]"<<endl;
         }
     }
-    else {
-        cout<<"No path found!"<<endl;
-    }
+    else { cout<<"No path found!"<<endl; }
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Breadth First Searched completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
-
+    //
     cout<<"...................................................................\n"<<endl;
     // DFS test
     temp_coord.clear();
     cout<<"DFS start...\n"<<endl;
-
     start_t = std::chrono::system_clock::now();
     DFS(&map_for_DFS, start, end);
     if ((map_for_DFS)[end[0]][end[1]] -> DFS_depth != std::numeric_limits<int>::max()) {
@@ -544,7 +592,7 @@ int main() {
             temp = temp->prev_for_BFS;
         }
         counter = 0;
-        cout<<"DFS found path with distance of "<<DFS_step<<endl;
+        cout<<"DFS found path with distance of "<<DFS_step+1<<endl;
         cout<<"The pass is showed as follows:"<<endl;
         cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
         for (int i=DFS_result.size()-1;i>-1;i--) {
@@ -564,9 +612,7 @@ int main() {
 
     temp_coord.clear();
     cout<<"Bellman Ford start...\n"<<endl;
-
     start_t = std::chrono::system_clock::now();
-    std::set<vector<int>> edges;
     bellman_ford_pre(&map_for_BF, &edges);
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
@@ -620,4 +666,58 @@ int main() {
     end_t = std::chrono::system_clock::now();
     elapsed_seconds = end_t-start_t;
     std::cout << "Bellman Ford Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n";
+
+    cout<<"...................................................................\n"<<endl;
+    // Wavefront test
+
+    temp_coord.clear();
+    cout<<"Wavefront start...\n"<<endl;
+    start_t = std::chrono::system_clock::now();
+    wave_front(&map_for_WF,start);
+    if (map_for_WF[end[0]][end[1]]->WF_height != std::numeric_limits<int>::max() - 1) {
+        while (1) {
+            temp_coord.clear();
+            temp_coord.push_back(temp->row);
+            temp_coord.push_back(temp->col);
+            WF_result.push_back(temp_coord);
+            if (temp_coord == end) {
+                break;
+            }
+            possible_neighbor.clear();
+            direction.clear();
+            if (temp->up != NULL) {
+                possible_neighbor.push_back(temp->up->WF_height);
+                direction.push_back(temp->up);
+            }
+            if (temp->down != NULL) {
+                possible_neighbor.push_back(temp->down->WF_height);
+                direction.push_back(temp->down);
+            }
+            if (temp->left != NULL) {
+                possible_neighbor.push_back(temp->left->WF_height);
+                direction.push_back(temp->left);
+            }
+            if (temp->right != NULL) {
+                possible_neighbor.push_back(temp->right->WF_height);
+                direction.push_back(temp->right);
+            }
+            min_number_BF = *std::max_element(possible_neighbor.begin(),possible_neighbor.end());
+            min_number_BF = std::distance(possible_neighbor.begin(), find(possible_neighbor.begin(), possible_neighbor.end(), min_number_BF));
+            temp = direction[min_number_BF];
+        }
+        counter = 0;
+        cout<<"Wavefront found path with distance of "<<WF_result.size()<<endl;
+        cout<<"The pass is showed as follows:"<<endl;
+//        cout<<"Step:" <<counter<<"  current coord is:["<<start[0]<<","<<start[1]<<"]"<<endl;
+        for (int i=0;i<WF_result.size();i++) {
+            cout<<"Step:" <<counter<<"  current coord is:["<<WF_result[i][0]<<","<<WF_result[i][1]<<"]"<<endl;
+            counter ++;
+        }
+    }
+    else {
+        cout<<"No path found!"<<endl;
+    }
+    end_t = std::chrono::system_clock::now();
+    elapsed_seconds = end_t-start_t;
+    std::cout << "Wavefront Preprocess completed, elapsed time: " << elapsed_seconds.count()*1000 << "ms\n\n";
 }
