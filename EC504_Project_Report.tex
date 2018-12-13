@@ -37,7 +37,7 @@ The generated maze has at least one way from starting node to goal node. With di
 The maze is an n by n square graph with a self-generate path from starting node to goal node. The rest part of this maze is building by randomly growth. The complexity and potential difficulty of the maze satisfies Gaussian distribution. We will run path finding algorithms in specific size mazes for multiple times so that we can reduce the testing error comes from the differentiated performance for a specific algorithm in a specific type of maze.
 
 \subsection{BFS, Wave-front and DFS Implement}
-The time complexity of BFS can be expressed as $O(|V|+|E|)$, since every vertex and every edge will be explored in the worst case. When the number of vertices in the graph is known ahead of time, and additional data structures are used to determine which vertices have already been added to the queue, the space complexity can be expressed as $O(|V|)$, where $|V|$ is the cardinality of the set of vertices. The BFS algorithm in this project has a break condition detect if the goal node has been found. Once the path is found, we don't have to iterate the rest nodes and arcs. DFS shares the same time complexity while this algorithm can't implement a break condition as BFS does. Wave-front algorithm is similar to BFS, the only difference is that wave-front search starting from the goal node and ending up at the starting node.
+The time complexity of BFS can be expressed as $O(|V|+|E|)$, since every vertex and every edge will be explored in the worst case. When the number of vertices in the graph is known ahead of time, and additional data structures are used to determine which vertices have already been added to the queue, the space complexity can be expressed as $O(|V|)$, where $|V|$ is the cardinality of the set of vertices. The BFS algorithm in this project has a break condition detect if the goal node has been found. Once the path is found, we don't have to iterate the rest nodes and arcs. DFS shares the same time complexity while this algorithm can't implement a break condition as BFS does. Wave-front algorithm is similar to BFS, the only two differences are that wave-front search starting from the goal node, ending up at the starting node and Wave-Front expand one breadth deeper for each graph iteration.
 
 \subsection{Bellman-Ford and Dijkstra Implement}
 Bellman–Ford proceeds by relaxation, in which approximations to the correct distance are replaced by better ones until they eventually reach the solution. The approximate distance to each vertex is always an overestimate of the true distance, and is replaced by the minimum of its old value and the length of a newly found path.
@@ -55,16 +55,16 @@ where n is the next node on the path, $g(n)$ is the cost of the path from the st
 \section{Testing Result and Comparison}
 \begin{table}[htbp]
 \begin{center}
-\begin{tabular}{|c| c c|}
+\begin{tabular}{|c| c c c|}
 \hline
- & Average Searching Steps & Average Running Time(ms)\\
+ & Average Steps & Visited Nodes & Average Running Time(ms)\\
 \hline
-BFS & 1079 & 13.3728\\
-DFS & 1079 & 21.2363\\
-Bellman-Ford & 1079 & 1854.31\\
-Wave-Front & 1079 & 584.219\\
-Dijkstra & 1079 & 53.9173\\
-A* & 1079 & 42.4525\\
+BFS & 1035 & 2468 & 13.3728\\
+DFS & 1035 & 4700 &21.2363\\
+Bellman-Ford & 1035 & 6324970 & 1854.31\\
+Wave-Front & 1035 & 1215001 & 584.219\\
+Dijkstra & 1035 & 2468 & 53.9173\\
+A* & 1035 & 2434 & 42.4525\\
 \hline
 \end{tabular}
 \end{center}
@@ -73,34 +73,16 @@ A* & 1079 & 42.4525\\
 
 \begin{table}[htbp]
 \begin{center}
-\begin{tabular}{|c| c c|}
+\begin{tabular}{|c| c c c|}
 \hline
- & Average Searching Steps & Average Running Time(ms)\\
+ & Average Steps & Visited Nodes & Average Running Time(ms)\\
 \hline
-BFS & 1605 & 14.3264\\
-DFS & 1605 & 149.141\\
-Bellman-Ford & 1605 & 29868.9\\
-Wave-Front & 1605 & 6030.82\\
-Dijkstra & 1605 & 143.041\\
-A* & 1605 & 116.849\\
-\hline
-\end{tabular}
-\end{center}
-\caption{Algorithms performance in 100 by 100 maze with average of 20 times run}
-\end{table}
-
-\begin{table}[htbp]
-\begin{center}
-\begin{tabular}{|c| c c|}
-\hline
- & Average Searching Steps & Average Running Time(ms)\\
-\hline
-BFS & 9 & 0.260926\\
-DFS & 9 & 0.246555\\
-Bellman-Ford & 9 & 0.843464\\
-Wave-Front & 9 & 0.297089\\
-Dijkstra & 9 & 0.190777\\
-A* & 9 & 0.357041\\
+BFS & 11 & 18 & 0.260926\\
+DFS & 11 & 45 & 0.246555\\
+Bellman-Ford & 11 & 625 & 0.843464\\
+Wave-Front & 11 & 201 & 0.297089\\
+Dijkstra & 11 & 18 & 0.190777\\
+A* & 11 & 14 & 0.357041\\
 \hline
 \end{tabular}
 \end{center}
